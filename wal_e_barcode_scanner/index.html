@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WAL-E Barcode Scanner</title>
+</head>
+<body>
+  <h2>Scan a Product</h2>
+  <video id="camera" autoplay playsinline width="300"></video>
+  <button id="shutter">📸 Scan</button>
+  <canvas id="canvas" style="display: none;"></canvas>
+  <script>
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('canvas');
+    const shutter = document.getElementById('shutter');
+
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+    });
+
+    shutter.addEventListener('click', async () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('image', blob, 'frame.jpg');
+
+        const res = await fetch('http://localhost:8000/scan', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        alert("Barcode: " + data.barcode);
+      }, 'image/jpeg');
+    });
+  </script>
+</body>
+</html>
