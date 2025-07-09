@@ -4,68 +4,188 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WAL-E Barcode Scanner</title>
+  
+  <!-- Font Preloading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rowdies:wght@400;700&display=swap" rel="stylesheet">
+  
   <style>
-    #product-info {
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      width: 300px;
-      font-family: Arial, sans-serif;
+    :root {
+      --primary-blue: #0071ce;
+      --accent-yellow: #ffc220;
+      --background: #c3e6ff;
     }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: "Rowdies", sans-serif;
+      font-weight: 400;
+      background-color: var(--background);
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    header {
+      background-color: var(--primary-blue);
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    
+    h1, h2 {
+      font-weight: 400;
+    }
+    
+    .scan-container {
+      margin: 50px auto 0;
+      max-width: 350px;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    #product-info {
+      margin: 20px auto;
+      padding: 15px;
+      border: 1px solid var(--primary-blue);
+      max-width: 100%;
+      background-color: white;
+      border-radius: 8px;
+    }
+    
     #product-info p {
-      margin: 4px 0;
+      margin: 8px 0;
+    }
+    
+    button {
+      font-family: "Rowdies", sans-serif;
+      background-color: var(--primary-blue);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #005fa3;
+    }
+    
+    video {
+      border-radius: 8px;
+      background: black;
+    }
+    
+    .accent {
+      color: var(--accent-yellow);
+    }
+    
+    .bold {
+      font-weight: 700;
     }
   </style>
 </head>
-<body>
-  <h2>Scan a Product</h2>
-  <video id="camera" autoplay playsinline width="300"></video>
-  <button id="shutter">📸 Scan</button>
-  <canvas id="canvas" style="display: none;"></canvas>
 
+<body>
+  <header>
+    <h1>WALMART's -</h1>
+    <h1 class="accent">"Everything at Once"</h1>
+  </header>
+  
+  <div class="scan-container">
+    <h2>Scan a Product</h2>
+    <video id="camera" autoplay playsinline width="300"></video>
+    <button id="shutter">Scan the product</button>
+    <canvas id="canvas" style="display: none"></canvas>
+  </div>
+  
   <div id="product-info"></div>
 
   <script>
-    const video = document.getElementById('camera');
-    const canvas = document.getElementById('canvas');
-    const shutter = document.getElementById('shutter');
-    const infoDiv = document.getElementById('product-info');
-
-    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-      video.srcObject = stream;
-    });
-
-    shutter.addEventListener('click', async () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append('image', blob, 'frame.jpg');
-
-        const res = await fetch('http://localhost:8000/scan', {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await res.json();
-        
-        if (data.barcode) {
-          if (data.product) {
-            infoDiv.innerHTML = `
-              <p><strong>Barcode:</strong> ${data.barcode}</p>
-              <p><strong>Name:</strong> ${data.product.name}</p>
-              <p><strong>Price:</strong> ${data.product.price}</p>
-              <p><strong>Selling Price:</strong> ${data.product.selling_price}</p>
-              <p><strong>Net Weight:</strong> ${data.product.net_weight}</p>
-            `;
-          } else {
-            infoDiv.innerHTML = `<p>Barcode: ${data.barcode}</p><p><em>Product not found in database.</em></p>`;
-          }
-        } else {
-          infoDiv.innerHTML = `<p><em>No barcode detected.</em></p>`;
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('camera');
+      const canvas = document.getElementById('canvas');
+      const shutter = document.getElementById('shutter');
+      const infoDiv = document.getElementById('product-info');
+      
+      // Initialize camera
+      const initCamera = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          infoDiv.innerHTML = '<p class="error">Could not access camera. Please ensure permissions are granted.</p>';
         }
-      }, 'image/jpeg');
+      };
+      
+      // Handle scan button click
+      shutter.addEventListener('click', async () => {
+        try {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const context = canvas.getContext('2d');
+          context.drawImage(video, 0, 0);
+          
+          const blob = await new Promise((resolve) => {
+            canvas.toBlob(resolve, 'image/jpeg');
+          });
+          
+          const formData = new FormData();
+          formData.append('image', blob, 'frame.jpg');
+          
+          const response = await fetch('http://localhost:8000/scan', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) throw new Error('Network response was not ok');
+          
+          const data = await response.json();
+          
+          if (data.barcode) {
+            if (data.product) {
+              infoDiv.innerHTML = `
+                <p><strong class="bold">Barcode:</strong> ${data.barcode}</p>
+                <p><strong class="bold">Name:</strong> ${data.product.name}</p>
+                <p><strong class="bold">Price:</strong> ${data.product.price}</p>
+                <p><strong class="bold">Selling Price:</strong> ${data.product.selling_price}</p>
+                <p><strong class="bold">Net Weight (in Kg/L):</strong> ${data.product.net_weight}</p>
+              `;
+            } else {
+              infoDiv.innerHTML = `
+                <p><strong class="bold">Barcode:</strong> ${data.barcode}</p>
+                <p><em>Product not found in database.</em></p>
+              `;
+            }
+          } else {
+            infoDiv.innerHTML = '<p><em>No barcode detected.</em></p>';
+          }
+        } catch (error) {
+          console.error('Error during scanning:', error);
+          infoDiv.innerHTML = '<p class="error">Error processing scan. Please try again.</p>';
+        }
+      });
+      
+      initCamera();
     });
   </script>
 </body>

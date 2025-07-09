@@ -1,4 +1,4 @@
 barcode,name,price,selling_price,net_weight
-0123456789012,Amul Milk 1L,$1.50,$1.20,1L
-1234567890128,Parle-G Biscuit Pack,$0.60,$0.50,120g
-8906155430452,Tata Salt,$0.80,$0.70,1kg
+0123456789012,Amul Milk 1L,₹40,₹35,1L
+1234567890128,Parle-G Biscuit Pack,₹12,₹10,120g
+8906155430452,Tata Salt,₹80,₹69,1kg
