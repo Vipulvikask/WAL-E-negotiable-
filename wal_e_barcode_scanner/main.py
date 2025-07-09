@@ -4,6 +4,7 @@ from starlette.responses import JSONResponse
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
+import csv
 
 app = FastAPI()
 
@@ -14,27 +15,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Sample in-memory product database
-PRODUCTS_DB = {
-    "0123456789012": {
-        "name": "Amul Milk 1L",
-        "price": "$1.50",
-        "selling_price": "$1.20",
-        "net_weight": "1L"
-    },
-    "1234567890128": {
-        "name": "Parle-G Biscuit Pack",
-        "price": "$0.60",
-        "selling_price": "$0.50",
-        "net_weight": "120g"
-    },
-    "8906155430452": {
-        "name": "Tata Salt",
-        "price": "$0.80",
-        "selling_price": "$0.70",
-        "net_weight": "1kg"
-    }
-}
+PRODUCTS_DB = {}
+
+# Load products from CSV into the PRODUCTS_DB dictionary
+def load_products_from_csv():
+    with open('productinfo.csv', mode='r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            barcode = row["barcode"]
+            PRODUCTS_DB[barcode] = {
+                "name": row["name"],
+                "price": row["price"],
+                "selling_price": row["selling_price"],
+                "net_weight": row["net_weight"]
+            }
+
+load_products_from_csv()
 
 @app.post("/scan")
 async def scan_image(image: UploadFile = File(...)):
