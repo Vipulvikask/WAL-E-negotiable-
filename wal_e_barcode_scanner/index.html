@@ -1,17 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WAL-E Barcode Scanner</title>
+  <style>
+    #product-info {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      width: 300px;
+      font-family: Arial, sans-serif;
+    }
+    #product-info p {
+      margin: 4px 0;
+    }
+  </style>
 </head>
 <body>
   <h2>Scan a Product</h2>
   <video id="camera" autoplay playsinline width="300"></video>
   <button id="shutter">📸 Scan</button>
   <canvas id="canvas" style="display: none;"></canvas>
+
+  <div id="product-info"></div>
+
   <script>
     const video = document.getElementById('camera');
     const canvas = document.getElementById('canvas');
     const shutter = document.getElementById('shutter');
+    const infoDiv = document.getElementById('product-info');
 
     navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
       video.srcObject = stream;
@@ -31,7 +49,22 @@
         });
 
         const data = await res.json();
-        alert("Barcode: " + data.barcode);
+        
+        if (data.barcode) {
+          if (data.product) {
+            infoDiv.innerHTML = `
+              <p><strong>Barcode:</strong> ${data.barcode}</p>
+              <p><strong>Name:</strong> ${data.product.name}</p>
+              <p><strong>Price:</strong> ${data.product.price}</p>
+              <p><strong>Selling Price:</strong> ${data.product.selling_price}</p>
+              <p><strong>Net Weight:</strong> ${data.product.net_weight}</p>
+            `;
+          } else {
+            infoDiv.innerHTML = `<p>Barcode: ${data.barcode}</p><p><em>Product not found in database.</em></p>`;
+          }
+        } else {
+          infoDiv.innerHTML = `<p><em>No barcode detected.</em></p>`;
+        }
       }, 'image/jpeg');
     });
   </script>
