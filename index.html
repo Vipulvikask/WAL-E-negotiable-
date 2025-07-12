@@ -142,10 +142,41 @@
       display: flex;
       justify-content: space-between;
       gap: 20px;
+      padding-right: 40px;
+      position: relative;
     }
 
     .product-info {
       flex: 1;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: white;
+      /* Changed from red to white */
+      font-size: 1.1em;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+      background-color: #dc3545;
+      /* Using the same red as clear button */
+      z-index: 1;
+      /* Ensures it stays above other content */
+    }
+
+    .delete-btn:hover {
+      background-color: #c82333;
+      /* Darker red on hover */
+      transform: scale(1.1);
     }
 
     .billing-info {
@@ -153,6 +184,7 @@
       text-align: right;
       border-left: 1px dashed #ccc;
       padding-left: 15px;
+      padding-right: 20px;
     }
 
     .product-title {
@@ -167,6 +199,122 @@
       background-color: #fff3f3;
       border: 1px solid #ffb8b8;
       color: #dc3545;
+    }
+
+    .payment-summary {
+
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 75px;
+      margin-bottom: 50px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e0e0e0;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .payment-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+    }
+
+    .payment-total {
+      font-weight: 700;
+      color: var(--primary-blue);
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    .pay-now-btn {
+      display: block;
+      width: 200px;
+      margin: 20px auto 0;
+      background-color: #28a745 !important;
+      font-size: 1.1em;
+      padding: 12px;
+    }
+
+    .pay-now-btn:hover {
+      background-color: #218838 !important;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      display: none;
+      /* Hidden by default */
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 25px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-title {
+      font-size: 1.3em;
+      margin-bottom: 20px;
+      color: var(--primary-blue);
+      text-align: center;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      font-family: "Rowdies", sans-serif;
+    }
+
+    .proceed-btn {
+      background-color: var(--primary-blue);
+      color: white;
+    }
+
+    .cancel-btn {
+      background-color: #f1f1f1;
+      color: #333;
     }
   </style>
 </head>
@@ -185,7 +333,19 @@
   </div>
 
   <div id="product-info"></div>
-
+  <div class="modal-overlay" id="upiModal">
+    <div class="modal-content">
+      <div class="modal-title">Enter UPI Details</div>
+      <div class="input-group">
+        <label for="upiId">UPI ID:</label>
+        <input type="text" id="upiId" placeholder="example@upi">
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn cancel-btn" id="cancelPayment">Cancel</button>
+        <button class="modal-btn proceed-btn" id="proceedPayment">Proceed</button>
+      </div>
+    </div>
+  </div>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const video = document.getElementById("camera");
@@ -237,63 +397,150 @@
       // Function to display all scanned products
       const displayProducts = () => {
         if (scannedProducts.length === 0) {
-          infoDiv.innerHTML =
-            '<div class="product-card"><em>No products scanned yet.</em></div>';
+          infoDiv.innerHTML = '<div class="product-card"><em>No products scanned yet.</em></div>';
+          // Remove payment summary if no products
+          document.querySelector('.payment-summary')?.remove();
           return;
         }
 
         let html = '<div class="product-list">';
 
+        // Calculate totals
+        let totalAmount = 0;
+        let totalWeight = 0;
+
         scannedProducts.forEach((item, index) => {
           if (item.product) {
+            // Add to totals if product exists
+            totalAmount += parseFloat(item.product.selling_price) || 0;
+            totalWeight += parseFloat(item.product.net_weight) || 0;
+
             html += `
-              <div class="product-card">
-                <div class="product-info">
-                  <p class="product-title"><strong>Product ${index + 1
-              }</strong></p>
-                  <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
-                  <p><strong class="bold">Name:</strong> ${item.product.name
-              }</p>
-                </div>
-                <div class="billing-info">
-                  <p><strong class="bold">Price:</strong> ₹${item.product.price
-              }</p>
-                  <p><strong class="bold">Selling Price:</strong> ₹${item.product.selling_price
-              }</p>
-                  <p><strong class="bold">Net Weight:</strong> ${item.product.net_weight
-              } Kg/L</p>
-                </div>
+            <div class="product-card" data-index="${index}">
+              <button class="delete-btn" aria-label="Delete product">
+                <i class="fas fa-times"></i>
+              </button>
+              <div class="product-info">
+                <p class="product-title"><strong>Product ${index + 1}</strong></p>
+                <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
+                <p><strong class="bold">Name:</strong> ${item.product.name}</p>
               </div>
-            `;
+              <div class="billing-info">
+                <p><strong class="bold">Price:</strong> ₹${item.product.price}</p>
+                <p><strong class="bold">Selling Price:</strong> ₹${item.product.selling_price}</p>
+                <p><strong class="bold">Net Weight:</strong> ${item.product.net_weight} Kg/L</p>
+              </div>
+            </div>
+          `;
           } else {
             html += `
-              <div class="product-card">
-                <div class="product-info">
-                  <p class="product-title"><strong>Product ${index + 1
-              }</strong></p>
-                  <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
-                  <p><em>Product not found in database.</em></p>
-                </div>
+            <div class="product-card" data-index="${index}">
+              <button class="delete-btn" aria-label="Delete product">
+                <i class="fas fa-times"></i>
+              </button>
+              <div class="product-info">
+                <p class="product-title"><strong>Product ${index + 1}</strong></p>
+                <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
+                <p><em>Product not found in database.</em></p>
               </div>
-            `;
+            </div>
+          `;
           }
         });
 
         // Add a clear button
         html += `
-          <button id="clear-list" class="clear-btn">Clear All Products</button>
-        `;
+        <button id="clear-list" class="clear-btn">Clear All Products</button>
+      `;
 
-        html += "</div>";
+        html += '</div>';
         infoDiv.innerHTML = html;
 
+
+        // Add payment summary
+        const existingPaymentSummary = document.querySelector('.payment-summary');
+        const paymentSummary = existingPaymentSummary || document.createElement('div');
+        paymentSummary.className = 'payment-summary';
+        paymentSummary.innerHTML = `
+        <div class="payment-row">
+          <span>Total Items:</span>
+          <span>${scannedProducts.length}</span>
+        </div>
+        <div class="payment-row">
+          <span>Total Cart Weight:</span>
+          <span>${totalWeight.toFixed(2)} Kg/L</span>
+        </div>
+        <div class="payment-row payment-total">
+          <span>Total Amount:</span>
+          <span>₹${totalAmount.toFixed(2)}</span>
+        </div>
+        <button class="pay-now-btn">Pay Now</button>
+      `;
+
+        if (!existingPaymentSummary) {
+          infoDiv.after(paymentSummary);
+        }
+
         // Add event listener for clear button
-        document
-          .getElementById("clear-list")
-          ?.addEventListener("click", () => {
-            scannedProducts = [];
+        document.getElementById('clear-list')?.addEventListener('click', () => {
+          scannedProducts = [];
+          displayProducts();
+        });
+
+        // Add event listeners for all delete buttons
+        document.querySelectorAll('.delete-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const card = e.target.closest('.product-card');
+            const index = parseInt(card.getAttribute('data-index'));
+            scannedProducts.splice(index, 1);
             displayProducts();
+            showStatus('Product removed successfully!');
           });
+        });
+
+        // Add event listener for pay now button
+        // Update the pay now button event listener
+        document.querySelector('.pay-now-btn')?.addEventListener('click', () => {
+          // Show the UPI modal
+          document.getElementById('upiModal').style.display = 'flex';
+        });
+
+        // Add event listeners for modal buttons
+        document.getElementById('cancelPayment').addEventListener('click', () => {
+          document.getElementById('upiModal').style.display = 'none';
+        });
+
+        document.getElementById('proceedPayment').addEventListener('click', () => {
+          const upiId = document.getElementById('upiId').value.trim();
+
+          // Validate UPI ID only once
+          if (!upiId) {
+            alert('Please enter a valid UPI ID');
+            return; // This exits the function early if validation fails
+          }
+
+          // Calculate total amount for ALL products
+          let totalAmount = scannedProducts.reduce((sum, item) => {
+            return sum + (item.product ? parseFloat(item.product.selling_price) || 0 : 0);
+          }, 0);
+
+          // Calculate total weight for ALL products
+          let totalWeight = scannedProducts.reduce((sum, item) => {
+            return sum + (item.product ? parseFloat(item.product.net_weight) || 0 : 0);
+          }, 0);
+
+          // Close modal
+          document.getElementById('upiModal').style.display = 'none';
+
+          // Show SINGLE confirmation for entire cart
+          alert(`Payment request of ₹${totalAmount.toFixed(2)} sent to: ${upiId}\n\n` +
+            `For ${scannedProducts.length} item(s)\n` +
+            `Total Weight: ${totalWeight.toFixed(2)} Kg/L`);
+
+          // Optional: Uncomment to clear cart after payment
+          // scannedProducts = [];
+          // displayProducts();
+        });
       };
 
       // Handle scan button click
