@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmartShopper.in</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rowdies:wght@400;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-  
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rowdies:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
+
   <style>
     :root {
       --primary-blue: #0071ce;
       --accent-yellow: #ffc220;
       --background: #c3e6ff;
     }
-    
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    
+
     body {
       font-family: "Rowdies", sans-serif;
       font-weight: 400;
@@ -30,7 +31,7 @@
       padding: 10px;
       line-height: 1.6;
     }
-    
+
     header {
       background-color: var(--primary-blue);
       padding: 20px;
@@ -42,11 +43,12 @@
       flex-wrap: wrap;
       gap: 5px;
     }
-    
-    h1, h2 {
+
+    h1,
+    h2 {
       font-weight: 400;
     }
-    
+
     .scan-container {
       margin: 50px auto 0;
       max-width: 350px;
@@ -59,7 +61,7 @@
       padding: 20px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-    
+
     #product-info {
       margin: 20px auto;
       padding: 15px;
@@ -68,11 +70,11 @@
       background-color: white;
       border-radius: 8px;
     }
-    
+
     #product-info p {
       margin: 8px 0;
     }
-    
+
     button {
       font-family: "Rowdies", sans-serif;
       background-color: var(--primary-blue);
@@ -84,25 +86,87 @@
       margin-top: 15px;
       transition: background-color 0.3s;
     }
-    
+
     button:hover {
       background-color: #ffc220;
       color: black;
     }
-    
+
     video {
       border-radius: 8px;
       background: black;
     }
-    
+
     .accent {
       color: var(--accent-yellow);
       font-family: "Pacifico", cursive;
       font-weight: 400;
     }
-    
+
     .bold {
       font-weight: 700;
+    }
+
+    .product-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .error-card {
+      background-color: #fff3f3;
+      border: 1px solid #ffb8b8;
+      color: #dc3545;
+    }
+
+    .scan-status {
+      margin: 10px auto;
+      max-width: 700px;
+    }
+
+    .clear-btn {
+      background-color: #dc3545 !important;
+      margin-top: 20px;
+    }
+
+    .clear-btn:hover {
+      background-color: #c82333 !important;
+    }
+
+    .product-card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .product-info {
+      flex: 1;
+    }
+
+    .billing-info {
+      flex: 1;
+      text-align: right;
+      border-left: 1px dashed #ccc;
+      padding-left: 15px;
+    }
+
+    .product-title {
+      font-size: 1.1em;
+      margin-bottom: 8px;
+      color: var(--primary-blue);
+    }
+
+    /* Make error cards full width */
+    .error-card {
+      display: block;
+      background-color: #fff3f3;
+      border: 1px solid #ffb8b8;
+      color: #dc3545;
     }
   </style>
 </head>
@@ -112,84 +176,169 @@
     <h1>WALMART's -</h1>
     <h1 class="accent">"Everything at Once !"</h1>
   </header>
-  
+
   <div class="scan-container">
     <h2>Scan a Product</h2>
     <video id="camera" autoplay playsinline width="300"></video>
     <button id="shutter">Scan the product</button>
     <canvas id="canvas" style="display: none"></canvas>
   </div>
-  
+
   <div id="product-info"></div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const video = document.getElementById('camera');
-      const canvas = document.getElementById('canvas');
-      const shutter = document.getElementById('shutter');
-      const infoDiv = document.getElementById('product-info');
-      
+    document.addEventListener("DOMContentLoaded", () => {
+      const video = document.getElementById("camera");
+      const canvas = document.getElementById("canvas");
+      const shutter = document.getElementById("shutter");
+      const infoDiv = document.getElementById("product-info");
+
+      // Array to store scanned products
+      let scannedProducts = [];
+      // Element to show scan status messages
+      const statusDiv = document.createElement("div");
+      statusDiv.className = "scan-status";
+      infoDiv.before(statusDiv);
+
       // Initialize camera
       const initCamera = async () => {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
           video.srcObject = stream;
         } catch (error) {
-          console.error('Error accessing camera:', error);
-          infoDiv.innerHTML = '<p class="error">Could not access camera. Please ensure permissions are granted.</p>';
+          console.error("Error accessing camera:", error);
+          showStatus(
+            "Could not access camera. Please ensure permissions are granted.",
+            true
+          );
         }
       };
-      
+
+      // Function to show status messages
+      const showStatus = (message, isError = false) => {
+        statusDiv.innerHTML = "";
+        const card = document.createElement("div");
+        card.className = isError ? "product-card error-card" : "product-card";
+        card.textContent = message;
+        statusDiv.appendChild(card);
+
+        // Auto-hide non-error messages after 3 seconds
+        if (!isError) {
+          setTimeout(() => {
+            if (statusDiv.firstChild === card) {
+              statusDiv.innerHTML = "";
+            }
+          }, 3000);
+        }
+      };
+
+      // Function to display all scanned products
+      const displayProducts = () => {
+        if (scannedProducts.length === 0) {
+          infoDiv.innerHTML =
+            '<div class="product-card"><em>No products scanned yet.</em></div>';
+          return;
+        }
+
+        let html = '<div class="product-list">';
+
+        scannedProducts.forEach((item, index) => {
+          if (item.product) {
+            html += `
+              <div class="product-card">
+                <div class="product-info">
+                  <p class="product-title"><strong>Product ${index + 1
+              }</strong></p>
+                  <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
+                  <p><strong class="bold">Name:</strong> ${item.product.name
+              }</p>
+                </div>
+                <div class="billing-info">
+                  <p><strong class="bold">Price:</strong> ₹${item.product.price
+              }</p>
+                  <p><strong class="bold">Selling Price:</strong> ₹${item.product.selling_price
+              }</p>
+                  <p><strong class="bold">Net Weight:</strong> ${item.product.net_weight
+              } Kg/L</p>
+                </div>
+              </div>
+            `;
+          } else {
+            html += `
+              <div class="product-card">
+                <div class="product-info">
+                  <p class="product-title"><strong>Product ${index + 1
+              }</strong></p>
+                  <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
+                  <p><em>Product not found in database.</em></p>
+                </div>
+              </div>
+            `;
+          }
+        });
+
+        // Add a clear button
+        html += `
+          <button id="clear-list" class="clear-btn">Clear All Products</button>
+        `;
+
+        html += "</div>";
+        infoDiv.innerHTML = html;
+
+        // Add event listener for clear button
+        document
+          .getElementById("clear-list")
+          ?.addEventListener("click", () => {
+            scannedProducts = [];
+            displayProducts();
+          });
+      };
+
       // Handle scan button click
-      shutter.addEventListener('click', async () => {
+      shutter.addEventListener("click", async () => {
         try {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
-          const context = canvas.getContext('2d');
+          const context = canvas.getContext("2d");
           context.drawImage(video, 0, 0);
-          
+
           const blob = await new Promise((resolve) => {
-            canvas.toBlob(resolve, 'image/jpeg');
+            canvas.toBlob(resolve, "image/jpeg");
           });
-          
+
           const formData = new FormData();
-          formData.append('image', blob, 'frame.jpg');
-          
-          const response = await fetch('http://localhost:8000/scan', {
-            method: 'POST',
-            body: formData
+          formData.append("image", blob, "frame.jpg");
+
+          const response = await fetch("http://localhost:8000/scan", {
+            method: "POST",
+            body: formData,
           });
-          
-          if (!response.ok) throw new Error('Network response was not ok');
-          
+
+          if (!response.ok) throw new Error("Network response was not ok");
+
           const data = await response.json();
-          
+
           if (data.barcode) {
-            if (data.product) {
-              infoDiv.innerHTML = `
-                <p><strong class="bold">Barcode:</strong> ${data.barcode}</p>
-                <p><strong class="bold">Name:</strong> ${data.product.name}</p>
-                <p><strong class="bold">Price:</strong> ${data.product.price}</p>
-                <p><strong class="bold">Selling Price:</strong> ${data.product.selling_price}</p>
-                <p><strong class="bold">Net Weight (in Kg/L):</strong> ${data.product.net_weight}</p>
-              `;
-            } else {
-              infoDiv.innerHTML = `
-                <p><strong class="bold">Barcode:</strong> ${data.barcode}</p>
-                <p><em>Product not found in database.</em></p>
-              `;
-            }
+            // Add the scanned product to our array
+            scannedProducts.push(data);
+            displayProducts();
+            showStatus("Product scanned successfully!");
           } else {
-            infoDiv.innerHTML = '<p><em>No barcode detected.</em></p>';
+            showStatus("No barcode detected. Please try again.", true);
           }
         } catch (error) {
-          console.error('Error during scanning:', error);
-          infoDiv.innerHTML = '<p class="error">Error processing scan. Please try again.</p>';
+          console.error("Error during scanning:", error);
+          showStatus("Error processing scan. Please try again.", true);
         }
       });
-      
+
+      // Initialize camera and display empty state
       initCamera();
+      displayProducts();
     });
   </script>
 </body>
+
 </html>
