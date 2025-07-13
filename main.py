@@ -17,18 +17,29 @@ app.add_middleware(
 
 PRODUCTS_DB = {}
 
-# Load products from CSV into the PRODUCTS_DB dictionary
 def load_products_from_csv():
     with open('productinfo.csv', mode='r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         for row in reader:
             barcode = row["barcode"]
-            PRODUCTS_DB[barcode] = {
+            product_data = {
                 "name": row["name"],
                 "price": row["price"],
                 "selling_price": row["selling_price"],
                 "net_weight": row["net_weight"]
             }
+            
+            # Add recommendations if they exist
+            recommendations = []
+            for i in range(1, 4):
+                rec_key = f"recommendation{i}"
+                if rec_key in row and row[rec_key] and row[rec_key].strip():  # Added null check
+                    recommendations.append(row[rec_key].strip())
+            
+            if recommendations:
+                product_data["recommendations"] = recommendations
+            
+            PRODUCTS_DB[barcode] = product_data
 
 load_products_from_csv()
 

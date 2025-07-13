@@ -316,6 +316,54 @@
       background-color: #f1f1f1;
       color: #333;
     }
+
+    .recommendations-container {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+    }
+
+    .recommendations-btn {
+      background-color: var(--accent-yellow);
+      color: black;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 0.8em;
+      transition: all 0.3s;
+    }
+
+    .recommendations-btn:hover {
+      background-color: #ffd700;
+    }
+
+    .recommendations-dropdown {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      width: 200px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+
+    .recommendations-dropdown.show {
+      display: block;
+    }
+
+    .recommendation-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .recommendation-item:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 
@@ -398,7 +446,6 @@
       const displayProducts = () => {
         if (scannedProducts.length === 0) {
           infoDiv.innerHTML = '<div class="product-card"><em>No products scanned yet.</em></div>';
-          // Remove payment summary if no products
           document.querySelector('.payment-summary')?.remove();
           return;
         }
@@ -415,36 +462,54 @@
             totalAmount += parseFloat(item.product.selling_price) || 0;
             totalWeight += parseFloat(item.product.net_weight) || 0;
 
+            // Check if product has recommendations
+            const hasRecommendations = item.product.recommendations && 
+                                     item.product.recommendations.length > 0;
+
             html += `
             <div class="product-card" data-index="${index}">
-              <button class="delete-btn" aria-label="Delete product">
-                <i class="fas fa-times"></i>
-              </button>
-              <div class="product-info">
-                <p class="product-title"><strong>Product ${index + 1}</strong></p>
-                <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
-                <p><strong class="bold">Name:</strong> ${item.product.name}</p>
-              </div>
-              <div class="billing-info">
-                <p><strong class="bold">Price:</strong> ₹${item.product.price}</p>
-                <p><strong class="bold">Selling Price:</strong> ₹${item.product.selling_price}</p>
-                <p><strong class="bold">Net Weight:</strong> ${item.product.net_weight} Kg/L</p>
-              </div>
+                <button class="delete-btn" aria-label="Delete product">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="product-info">
+                    <p class="product-title"><strong>Product ${index + 1}</strong></p>
+                    <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
+                    <p><strong class="bold">Name:</strong> ${item.product.name}</p>
+                </div>
+                <div class="billing-info">
+                    <p><strong class="bold">Price:</strong> ₹${item.product.price}</p>
+                    <p><strong class="bold">Selling Price:</strong> ₹${item.product.selling_price}</p>
+                    <p><strong class="bold">Net Weight:</strong> ${item.product.net_weight} Kg/L</p>
+                </div>
+                
+                ${hasRecommendations ? `
+                <div class="recommendations-container">
+                    <button class="recommendations-btn" data-index="${index}">
+                        Recommended Items ▼
+                    </button>
+                    <div class="recommendations-dropdown" id="recommendations-${index}">
+                        <p style="font-weight:bold; margin-bottom:8px;">You might also like:</p>
+                        ${item.product.recommendations.map(rec => 
+                            `<div class="recommendation-item">${rec}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+                ` : ''}
             </div>
-          `;
+            `;
           } else {
             html += `
             <div class="product-card" data-index="${index}">
-              <button class="delete-btn" aria-label="Delete product">
-                <i class="fas fa-times"></i>
-              </button>
-              <div class="product-info">
-                <p class="product-title"><strong>Product ${index + 1}</strong></p>
-                <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
-                <p><em>Product not found in database.</em></p>
-              </div>
+                <button class="delete-btn" aria-label="Delete product">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="product-info">
+                    <p class="product-title"><strong>Product ${index + 1}</strong></p>
+                    <p><strong class="bold">Barcode:</strong> ${item.barcode}</p>
+                    <p><em>Product not found in database.</em></p>
+                </div>
             </div>
-          `;
+            `;
           }
         });
 
@@ -455,7 +520,6 @@
 
         html += '</div>';
         infoDiv.innerHTML = html;
-
 
         // Add payment summary
         const existingPaymentSummary = document.querySelector('.payment-summary');
@@ -499,49 +563,63 @@
         });
 
         // Add event listener for pay now button
-        // Update the pay now button event listener
         document.querySelector('.pay-now-btn')?.addEventListener('click', () => {
-          // Show the UPI modal
           document.getElementById('upiModal').style.display = 'flex';
         });
 
-        // Add event listeners for modal buttons
-        document.getElementById('cancelPayment').addEventListener('click', () => {
-          document.getElementById('upiModal').style.display = 'none';
-        });
-
-        document.getElementById('proceedPayment').addEventListener('click', () => {
-          const upiId = document.getElementById('upiId').value.trim();
-
-          // Validate UPI ID only once
-          if (!upiId) {
-            alert('Please enter a valid UPI ID');
-            return; // This exits the function early if validation fails
-          }
-
-          // Calculate total amount for ALL products
-          let totalAmount = scannedProducts.reduce((sum, item) => {
-            return sum + (item.product ? parseFloat(item.product.selling_price) || 0 : 0);
-          }, 0);
-
-          // Calculate total weight for ALL products
-          let totalWeight = scannedProducts.reduce((sum, item) => {
-            return sum + (item.product ? parseFloat(item.product.net_weight) || 0 : 0);
-          }, 0);
-
-          // Close modal
-          document.getElementById('upiModal').style.display = 'none';
-
-          // Show SINGLE confirmation for entire cart
-          alert(`Payment request of ₹${totalAmount.toFixed(2)} sent to: ${upiId}\n\n` +
-            `For ${scannedProducts.length} item(s)\n` +
-            `Total Weight: ${totalWeight.toFixed(2)} Kg/L`);
-
-          // Optional: Uncomment to clear cart after payment
-          // scannedProducts = [];
-          // displayProducts();
+        // Add event listeners for recommendation buttons
+        document.querySelectorAll('.recommendations-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const index = e.target.getAttribute('data-index');
+            const dropdown = document.getElementById(`recommendations-${index}`);
+            dropdown.classList.toggle('show');
+            
+            // Close other open dropdowns
+            document.querySelectorAll('.recommendations-dropdown').forEach(dd => {
+              if (dd !== dropdown && dd.classList.contains('show')) {
+                dd.classList.remove('show');
+              }
+            });
+            
+            e.stopPropagation();
+          });
         });
       };
+
+      // Close dropdowns when clicking anywhere else
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.recommendations-dropdown.show').forEach(dd => {
+          dd.classList.remove('show');
+        });
+      });
+
+      // Add event listeners for modal buttons
+      document.getElementById('cancelPayment').addEventListener('click', () => {
+        document.getElementById('upiModal').style.display = 'none';
+      });
+
+      document.getElementById('proceedPayment').addEventListener('click', () => {
+        const upiId = document.getElementById('upiId').value.trim();
+
+        if (!upiId) {
+          alert('Please enter a valid UPI ID');
+          return;
+        }
+
+        // Calculate totals again in case products changed
+        let totalAmount = scannedProducts.reduce((sum, item) => {
+          return sum + (item.product ? parseFloat(item.product.selling_price) || 0 : 0);
+        }, 0);
+
+        let totalWeight = scannedProducts.reduce((sum, item) => {
+          return sum + (item.product ? parseFloat(item.product.net_weight) || 0 : 0);
+        }, 0);
+
+        document.getElementById('upiModal').style.display = 'none';
+        alert(`Payment request of ₹${totalAmount.toFixed(2)} sent to: ${upiId}\n\n` +
+          `For ${scannedProducts.length} item(s)\n` +
+          `Total Weight: ${totalWeight.toFixed(2)} Kg/L`);
+      });
 
       // Handle scan button click
       shutter.addEventListener("click", async () => {
@@ -568,7 +646,6 @@
           const data = await response.json();
 
           if (data.barcode) {
-            // Add the scanned product to our array
             scannedProducts.push(data);
             displayProducts();
             showStatus("Product scanned successfully!");
