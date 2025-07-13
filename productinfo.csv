@@ -1,7 +1,7 @@
 barcode,name,price,selling_price,net_weight
 0123456789012,Amul Milk 1L,40,35,1
 1234567890128,Parle-G Biscuit Pack,12,10,0.120
-8906155430452,Tata Salt,80,69,1
+8906155430452,Bold Fit Jump Rope,140,99,0.200
 8901234567890,Sunfeast Dark Fantasy,20,18,0.150
 8901234567891,Maggi Noodles,15,12,0.070
 8901234567892,Pepsi 500ml,25,22,0.500
@@ -9,4 +9,9 @@ barcode,name,price,selling_price,net_weight
 8901234567894,Red Label Tea,50,45,0.250
 8901234567895,Sunfeast Bounce,15,13,0.100
 8901234567896,Parle Krackjack,10,9,0.050
-8901234567897, Britannia Good Day, 25, 22, 0.150
+8901234567897,Britannia Good Day,25,22,0.150
+8906105470095,MrBeast Feastables,500,399,0.200
+8901234567898,Cadbury Dairy Milk,50,45,0.100
+8901234567899,Lays Classic Chips,30,28,0.200
+8901234567900,Maggi Hot Heads,20,18,0.070
+8906025502012,PS5,49999,39999,1
